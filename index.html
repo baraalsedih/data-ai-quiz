@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AQU × DataCamp — Data &amp; AI Roles Quiz!</title>
+<script src="mqtt.min.js"></script>
+<script src="qrcode.min.js"></script>
+<style>
+  :root{
+    --bg1:#0f766e; --bg2:#4f46e5; --bg3:#9333ea;
+    --card:#ffffff; --ink:#111827; --muted:#6b7280;
+    --accent:#4f46e5; --accent2:#0d9488; --ok:#059669; --bad:#dc2626;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    min-height:100vh; color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 100%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:16px 14px 60px}
+  .wrap.wide{max-width:980px}
+  header{display:flex;align-items:center;gap:10px;color:#fff;padding:6px 2px 14px}
+  header .logo{font-size:30px}
+  header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px}
+  .pill{margin-left:auto;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    color:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;white-space:nowrap}
+  .pill.live::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:#4ade80;margin-right:6px;animation:blink 1.4s infinite}
+  .pill.err{background:#7f1d1d;border-color:#fca5a5}
+  @keyframes blink{50%{opacity:.35}}
+  .card{background:var(--card);border-radius:20px;padding:22px 20px;box-shadow:0 12px 40px rgba(17,24,39,.28);
+    animation:pop .35s ease}
+  @keyframes pop{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .card + .card{margin-top:14px}
+  h2{margin:0 0 6px;font-size:22px;line-height:1.35}
+  .qemoji{font-size:44px;line-height:1;margin-bottom:8px}
+  .muted{color:var(--muted);font-size:14px;margin:4px 0 0}
+  .qcount{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+  pre.data{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin:12px 0 0;
+    font-size:15px;line-height:1.6;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  input[type=text]{
+    width:100%;font-size:18px;padding:14px 16px;border:2px solid #e5e7eb;border-radius:14px;
+    outline:none;margin-top:14px;font-family:inherit;
+  }
+  input[type=text]:focus{border-color:var(--accent)}
+  button{
+    font-family:inherit;font-size:17px;font-weight:700;border:none;border-radius:14px;
+    padding:14px 20px;cursor:pointer;transition:transform .08s ease,box-shadow .2s;
+  }
+  button:active{transform:scale(.97)}
+  .btn-main{width:100%;margin-top:14px;color:#fff;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));
+    box-shadow:0 6px 18px rgba(79,70,229,.4)}
+  .btn-main:disabled{opacity:.5;cursor:default;box-shadow:none}
+  .btn-ghost{background:#eef2ff;color:var(--accent)}
+  .choices{display:grid;gap:10px;margin-top:16px}
+  .choice{background:#f5f6ff;border:2px solid #e5e7eb;color:var(--ink);font-size:17px;text-align:left;
+    display:flex;align-items:center;gap:10px;line-height:1.35}
+  .choice .key{flex:none;width:30px;height:30px;border-radius:50%;background:#e0e7ff;color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:15px}
+  .choice.sel{border-color:var(--accent);background:#eef2ff;box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+  .choice.right{border-color:var(--ok);background:#ecfdf5}
+  .choice.right .key{background:#d1fae5;color:var(--ok)}
+  .choice.wrong{border-color:var(--bad);background:#fef2f2}
+  .choice.wrong .key{background:#fee2e2;color:var(--bad)}
+  .choice:disabled{cursor:default;opacity:1}
+  .bar{margin-top:14px}
+  .bar .row{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .bar .lbl{width:210px;font-weight:600;font-size:14px;line-height:1.3}
+  .bar .lbl.ok{color:var(--ok)}
+  .bar .track{flex:1;background:#eef1f6;border-radius:99px;height:26px;overflow:hidden}
+  .bar .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent));
+    color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:flex-end;
+    padding-right:8px;min-width:26px;transition:width .5s ease}
+  .bar .fill.ok{background:linear-gradient(90deg,#10b981,#059669)}
+  .roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .tag{background:#eef2ff;color:var(--accent);border-radius:99px;padding:6px 12px;font-size:14px;
+    font-weight:600;animation:pop .3s ease}
+  .hostbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .hostbar button{flex:1;min-width:160px}
+  .statline{font-size:14px;color:var(--muted);margin-top:10px}
+  .joinbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  #qr{background:#fff;padding:8px;border-radius:12px}
+  .link{font-size:15px;word-break:break-all;color:var(--accent);font-weight:600}
+  .waiting{font-size:15px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-top:12px}
+  .dot3::after{content:'…';animation:blink 1.2s infinite}
+  .bignum{font-size:46px;font-weight:800;background:linear-gradient(90deg,var(--accent2),var(--accent));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .center{text-align:center}
+  .confetti{font-size:52px}
+  .verdict{margin-top:16px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:17px}
+  .verdict.ok{background:#ecfdf5;color:var(--ok)}
+  .verdict.bad{background:#fef2f2;color:var(--bad)}
+  .verdict .why{display:block;font-weight:500;font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .lb{list-style:none;margin:16px 0 0;padding:0}
+  .lb li{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:#f8fafc;
+    border:1.5px solid #eef1f6;margin-top:8px;animation:pop .3s ease}
+  .lb li .rank{flex:none;width:30px;font-weight:800;color:var(--muted);text-align:center}
+  .lb li .who{flex:1;font-weight:700;font-size:17px;word-break:break-word}
+  .lb li .pts{font-weight:800;color:var(--accent)}
+  .lb li.top1{background:linear-gradient(90deg,#fef9c3,#fefce8);border-color:#fde68a}
+  .lb li.top2{background:#f8fafc;border-color:#e2e8f0}
+  .lb li.top3{background:#fff7ed;border-color:#fed7aa}
+  .score{display:inline-block;background:#eef2ff;color:var(--accent);border-radius:99px;
+    padding:6px 14px;font-weight:700;font-size:15px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <header>
+    <div class="logo">🤖</div>
+    <div>
+      <h1>Data &amp; AI Roles — Quiz!</h1>
+      <div class="sub">AQU × DataCamp Trainees</div>
+    </div>
+    <div class="pill" id="conn">connecting…</div>
+  </header>
+  <div id="app"><div class="card center"><div class="waiting dot3" style="justify-content:center">Connecting to the quiz</div></div></div>
+</div>
+
+<script>
+/* ====== SESSION CONFIG (baked at build time) ====== */
+const SESSION_ID = 'on1bslkh';
+const HOST_KEY   = '6q2haqrhfk';
+const QUESTIONS = [
+  {emoji:'🎓', text:'DataCamp is mainly a platform for learning what?',
+   options:['Video editing','Data & AI skills','Graphic design','Game development'], correct:1,
+   why:'DataCamp is built around data and AI skills — Python, R, SQL, statistics, machine learning.'},
+
+  {emoji:'🐍', text:'Which of these is a programming language commonly used for Data Science?',
+   options:['Python','HTML','CSS','XML'], correct:0,
+   why:'Python is a full programming language. HTML and CSS describe and style web pages, and XML is a data format — none of them are programming languages.'},
+
+  {emoji:'📋', text:'What is one row in this dataset?',
+   data:'Name     Age   City\nAhmad    21    Hebron\nSara     22    Nablus\nLina     20    Hebron',
+   options:['A variable','A record / observation','A database','An algorithm'], correct:1,
+   why:'Each row is one record (one observation — one person here). The columns are the variables.'},
+
+  {emoji:'🗂️', text:'Which one is an example of structured data?',
+   options:['A table of students and their grades','A YouTube video','A voice recording','A photograph'], correct:0,
+   why:'Structured data lives in rows and columns with a fixed schema. Video, audio and images are unstructured.'},
+
+  {emoji:'🐱', text:'You give an AI model 10,000 pictures of cats and dogs and ask it to learn the difference. What are the 10,000 pictures?',
+   options:['Training data','Source code','Output','Algorithm'], correct:0,
+   why:'The examples a model learns from are its training data. The algorithm is how it learns; the output is the prediction it makes.'},
+
+  {emoji:'🗄️', text:'Which SQL command is commonly used to retrieve data from a database?',
+   options:['GET','SELECT','FIND','FETCH'], correct:1,
+   why:'SELECT is the SQL keyword for reading rows. GET, FIND and FETCH are not SQL query commands.'},
+
+  {emoji:'📊', text:"Imagine you have a dataset with students' scores. What would you use to find the average score?",
+   options:['mean','sort','delete','join'], correct:0,
+   why:'The mean is the average. sort orders rows, join combines tables, delete removes data.'},
+
+  {emoji:'🧠', text:'Which skill is probably the MOST useful when working with data?',
+   options:['Knowing one programming language perfectly','Memorizing lots of formulas',
+            'Being able to ask the right questions about the data','Having the fastest laptop'], correct:2,
+   why:'Tools and formulas can be looked up. Framing the right question is what turns data into a decision.'},
+
+  {emoji:'☕', text:'A coffee shop has data about 10,000 orders. They want to know which drink is most popular. What should they do first?',
+   options:['Build an AI model','Delete unnecessary data','Explore and analyze the data','Buy a bigger computer'], correct:2,
+   why:'Simple exploration answers this — just count the orders per drink. No model needed.'},
+
+  {emoji:'⚖️', text:'An AI model predicts that a student will fail, but the training data only included students from one university. What is the biggest concern?',
+   options:['The model is too fast','The data may not represent everyone','The computer is slow','AI does not use data'], correct:1,
+   why:'That is sampling bias — a model trained on one narrow group often fails on everyone outside it.'},
+];
+const LETTERS = ['A','B','C','D','E','F'];
+
+const params  = new URLSearchParams(location.search);
+const IS_HOST = location.hash.includes(HOST_KEY);
+const BROKERS = params.get('broker') ? [params.get('broker')] :
+  ['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081'];
+const BASE = 'aqu-dataai-quiz/' + SESSION_ID;
+const T_STATE = BASE + '/state', T_MSG = BASE + '/c2h';
+
+/* ====== identity ====== */
+let me = {};
+try { me = JSON.parse(localStorage.getItem('dq_me') || '{}'); } catch(e){}
+if(!me.id){ me.id = Math.random().toString(36).slice(2,10); }
+function saveMe(){ try{ localStorage.setItem('dq_me', JSON.stringify(me)); }catch(e){} }
+
+/* ====== state ====== */
+let S = { phase:'lobby', q:-1, roster:{}, answers:{} }; // answers[qIdx][clientId] = {nick,pick}
+let client=null, connected=false, brokerIdx=0, mySent={}, publishTimer=null;
+
+/* ====== mqtt ====== */
+function connect(){
+  const url = BROKERS[brokerIdx % BROKERS.length];
+  setConn('connecting…','');
+  try{ if(client){ client.end(true); } }catch(e){}
+  client = mqtt.connect(url, {clientId:'dq_'+me.id+'_'+Math.random().toString(36).slice(2,6),
+    keepalive:30, reconnectPeriod:0, connectTimeout:6000, clean:true});
+  client.on('connect', ()=>{
+    connected=true; setConn('live','live');
+    client.subscribe(T_STATE);
+    if(IS_HOST){ client.subscribe(T_MSG); publishState(); }
+    else if(me.nick){ send({type:'join', id:me.id, nick:me.nick}); }
+    render();
+  });
+  client.on('message', (topic, buf)=>{
+    let m; try{ m = JSON.parse(buf.toString()); }catch(e){ return; }
+    if(topic===T_STATE && !IS_HOST){ if(m && m.hostKeyHash===hk()) { S=m; render(); } }
+    if(topic===T_MSG && IS_HOST){ handleMsg(m); }
+  });
+  const fail = ()=>{ if(!connected){ brokerIdx++; setTimeout(connect, 700); }
+    else { connected=false; setConn('reconnecting…','err'); setTimeout(connect, 1200); } };
+  client.on('close', fail); client.on('error', ()=>{});
+}
+function hk(){ // lightweight tag so participants only trust host-published state
+  let h=0, s=HOST_KEY; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h.toString(36);
+}
+function send(obj){ if(client && connected) client.publish(T_MSG, JSON.stringify(obj)); }
+function setConn(t, cls){ const el=document.getElementById('conn'); el.textContent=t; el.className='pill '+cls; }
+
+/* ====== host logic ====== */
+function handleMsg(m){
+  if(!m || !m.id) return;
+  if(m.type==='join'){ S.roster[m.id]={nick:clean(m.nick,16)}; schedulePublish(); }
+  if(m.type==='answer' && typeof m.q==='number' && typeof m.pick==='number'){
+    const q = QUESTIONS[m.q];
+    if(!q || m.pick<0 || m.pick>=q.options.length) return;
+    if(S.phase!=='q' || S.q!==m.q) return;            // no answering after the reveal
+    S.roster[m.id]={nick:clean(m.nick,16)};
+    if(!S.answers[m.q]) S.answers[m.q]={};
+    S.answers[m.q][m.id]={nick:clean(m.nick,16), pick:m.pick};
+    schedulePublish();
+  }
+}
+function clean(s,n){ return String(s||'').replace(/[\x00-\x1f<>]/g,'').slice(0,n); }
+function schedulePublish(){
+  render();
+  if(publishTimer) return;
+  publishTimer=setTimeout(()=>{ publishTimer=null; publishState(); }, 250);
+}
+function publishState(){
+  if(!IS_HOST || !client || !connected) return;
+  S.hostKeyHash = hk(); S.ts = Date.now();
+  client.publish(T_STATE, JSON.stringify(S), {retain:true, qos:1});
+}
+function hostAction(a){
+  if(a==='start'){ S.phase='q'; S.q=0; }
+  else if(a==='reveal'){ S.phase='reveal'; }
+  else if(a==='next'){ if(S.q < QUESTIONS.length-1){ S.q++; S.phase='q'; } else { S.phase='end'; } }
+  else if(a==='back'){ S.phase='q'; }
+  else if(a==='reset'){ if(!confirm('Reset the whole session? All answers and scores will be cleared.'))return;
+    S={phase:'lobby', q:-1, roster:{}, answers:{}}; }
+  publishState(); render();
+}
+
+/* ====== participant actions ====== */
+function joinAs(){
+  const v = clean(document.getElementById('nickIn').value.trim(), 16);
+  if(!v){ document.getElementById('nickIn').focus(); return; }
+  me.nick = v; saveMe();
+  send({type:'join', id:me.id, nick:me.nick});
+  render();
+}
+function submitAnswer(pick){
+  if(S.phase!=='q') return;
+  if(mySent[S.q]!==undefined) return;                  // locked in — one shot per question
+  mySent[S.q]=pick;
+  send({type:'answer', id:me.id, nick:me.nick, q:S.q, pick});
+  render();
+}
+
+/* ====== scoring ====== */
+function answersFor(q){ return Object.values(S.answers[q]||{}); }
+function myPick(qi){
+  if(mySent[qi]!==undefined) return mySent[qi];
+  const a = (S.answers[qi]||{})[me.id];
+  return a ? a.pick : undefined;
+}
+function scores(){
+  const out = {};
+  Object.entries(S.roster).forEach(([id,r])=>{ out[id]={nick:r.nick, pts:0, answered:0}; });
+  Object.entries(S.answers).forEach(([qi,byId])=>{
+    const q = QUESTIONS[qi]; if(!q) return;
+    Object.entries(byId).forEach(([id,a])=>{
+      if(!out[id]) out[id]={nick:a.nick, pts:0, answered:0};
+      out[id].answered++;
+      if(a.pick===q.correct) out[id].pts++;
+    });
+  });
+  return Object.entries(out).map(([id,v])=>({id,...v}))
+    .sort((x,y)=> y.pts-x.pts || x.nick.localeCompare(y.nick));
+}
+function myScore(){ const s = scores().find(r=>r.id===me.id); return s || {pts:0, answered:0}; }
+
+/* ====== rendering ====== */
+const app = ()=>document.getElementById('app');
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function render(){
+  if(IS_HOST) return renderHost();
+  if(!me.nick) return renderNick();
+  if(S.phase==='lobby') return app().innerHTML =
+    card(`<div class="qemoji">🎉</div><h2>You're in, ${esc(me.nick)}!</h2>
+      <p class="muted">${QUESTIONS.length} questions about data &amp; AI roles. One point per correct answer.</p>
+      <div class="waiting dot3">Waiting for the host to start</div>`);
+  if(S.phase==='end') return renderEnd();
+  const q = QUESTIONS[S.q]; if(!q) return;
+  const pick = myPick(S.q);
+
+  if(S.phase==='q'){
+    let inner = qHead(q) + choicesHTML(q, pick, false);
+    inner += pick!==undefined
+      ? `<p class="muted" style="color:var(--ok);font-weight:600">✓ Locked in: ${LETTERS[pick]}. Hang tight for the reveal.</p>`
+      : `<p class="muted">Pick one — you can't change it after you tap.</p>`;
+    inner += `<p class="statline">${answersFor(S.q).length} of ${Object.keys(S.roster).length||'?'} answered…</p>`;
+    return app().innerHTML = card(inner);
+  }
+  if(S.phase==='reveal'){
+    const right = pick===q.correct;
+    let inner = qHead(q) + choicesHTML(q, pick, true);
+    inner += pick===undefined
+      ? `<div class="verdict bad">⏱️ No answer from you this round.<span class="why">${esc(q.why)}</span></div>`
+      : `<div class="verdict ${right?'ok':'bad'}">${right?'✅ Correct! +1 point':'❌ Not this time — the answer is '+LETTERS[q.correct]}
+          <span class="why">${esc(q.why)}</span></div>`;
+    inner += `<div class="center"><span class="score">Your score: ${myScore().pts} / ${S.q+1}</span></div>`;
+    inner += `<div class="waiting dot3">Waiting for the next question</div>`;
+    return app().innerHTML = card(inner);
+  }
+}
+function qHead(q){ return `<div class="qcount">Question ${S.q+1} / ${QUESTIONS.length}</div>
+  <div class="qemoji">${q.emoji}</div><h2>${esc(q.text)}</h2>` +
+  (q.data ? `<pre class="data">${esc(q.data)}</pre>` : ''); }
+
+function choicesHTML(q, pick, revealed){
+  return `<div class="choices">` + q.options.map((o,i)=>{
+    let cls='choice';
+    if(revealed){
+      if(i===q.correct) cls+=' right';
+      else if(i===pick) cls+=' wrong';
+    } else if(i===pick) cls+=' sel';
+    const lock = revealed || pick!==undefined;
+    return `<button class="${cls}" ${lock?'disabled':''} onclick="submitAnswer(${i})">
+      <span class="key">${LETTERS[i]}</span><span>${esc(o)}</span></button>`;
+  }).join('') + `</div>`;
+}
+function barsHTML(qi){
+  const q = QUESTIONS[qi], ans = answersFor(qi);
+  if(!ans.length) return `<p class="muted">No answers yet 😅</p>`;
+  const counts = q.options.map(()=>[]);
+  ans.forEach(a=>{ if(counts[a.pick]) counts[a.pick].push(a.nick); });
+  const max = Math.max(...counts.map(v=>v.length),1);
+  return `<div class="bar">` + counts.map((names,i)=>
+    `<div class="row"><div class="lbl ${i===q.correct?'ok':''}">${LETTERS[i]}. ${esc(q.options[i])}${i===q.correct?' ✅':''}</div>
+       <div class="track"><div class="fill ${i===q.correct?'ok':''}" style="width:${Math.max(8,100*names.length/max)}%">${names.length}</div></div></div>
+     <div class="muted" style="margin-left:220px">${esc(names.join(', '))}</div>`).join('') + `</div>`;
+}
+function leaderboardHTML(limit){
+  const rows = scores().filter(r=>r.answered>0);
+  if(!rows.length) return `<p class="muted">No scores yet.</p>`;
+  const shown = limit ? rows.slice(0,limit) : rows;
+  return `<ol class="lb">` + shown.map((r,i)=>
+    `<li class="${i<3?'top'+(i+1):''}"><span class="rank">${['🥇','🥈','🥉'][i]||(i+1)}</span>
+      <span class="who">${esc(r.nick)}</span><span class="pts">${r.pts} pt${r.pts===1?'':'s'}</span></li>`).join('') + `</ol>`;
+}
+function renderNick(){
+  app().innerHTML = card(`<div class="qemoji">👋</div><h2>Hey! What should we call you?</h2>
+    <p class="muted">Pick a nickname — it shows up on the leaderboard.</p>
+    <input type="text" id="nickIn" maxlength="16" placeholder="Your nickname…"
+      onkeydown="if(event.key==='Enter')joinAs()">
+    <button class="btn-main" onclick="joinAs()">Join the quiz 🚀</button>`);
+  setTimeout(()=>{ const el=document.getElementById('nickIn'); if(el) el.focus(); },50);
+}
+function renderEnd(){
+  const s = myScore();
+  app().innerHTML = card(`<div class="center"><div class="confetti">🎊</div>
+    <h2>That's a wrap!</h2>
+    <div class="bignum">${s.pts} / ${QUESTIONS.length}</div>
+    <p class="muted">Nice work, ${esc(me.nick)} — welcome to the world of Data &amp; AI roles! 💙</p></div>
+    <h2 style="margin-top:18px">🏆 Leaderboard</h2>${leaderboardHTML(10)}`);
+}
+function card(inner){ return `<div class="card">${inner}</div>`; }
+
+/* ====== host rendering ====== */
+function renderHost(){
+  document.getElementById('wrap').classList.add('wide');
+  const link = location.origin + location.pathname;
+  const roster = Object.values(S.roster);
+  let top = `<div class="card"><h2>🎛️ Host dashboard</h2>
+    <div class="joinbox"><div id="qr"></div>
+      <div><p class="muted">Attendees join at:</p><div class="link">${esc(link)}</div>
+      <p class="statline">👥 <b>${roster.length}</b> joined</p></div></div>
+    <div class="roster">${roster.map(r=>`<span class="tag">${esc(r.nick)}</span>`).join('')||'<span class="muted">Nobody yet — share the link!</span>'}</div>
+    ${controls()}</div>`;
+  let main = '';
+  if(S.phase==='q' || S.phase==='reveal'){
+    const q=QUESTIONS[S.q];
+    main = card(qHead(q) +
+      `<p class="statline"><b>${answersFor(S.q).length}</b> / ${roster.length} answered ${S.phase==='q'?'(results hidden from attendees until you reveal)':''}</p>` +
+      (S.phase==='reveal' ? `<p class="muted"><b>Correct answer: ${LETTERS[q.correct]}. ${esc(q.options[q.correct])}</b> — ${esc(q.why)}</p>` : '') +
+      barsHTML(S.q)) +
+      card(`<h2>🏆 Leaderboard</h2>${leaderboardHTML(10)}`);
+  }
+  if(S.phase==='end') main = card(`<div class="center"><div class="confetti">🎊</div><h2>Session finished!</h2></div>
+    <h2 style="margin-top:18px">🏆 Final leaderboard</h2>${leaderboardHTML(0)}`);
+  app().innerHTML = top + main;
+  const qr = document.getElementById('qr');
+  if(qr && window.QRCode){ qr.innerHTML=''; new QRCode(qr,{text:link,width:110,height:110}); }
+}
+function controls(){
+  const b=(a,l,cls='btn-main')=>`<button class="${cls}" style="margin-top:0" onclick="hostAction('${a}')">${l}</button>`;
+  let btns='';
+  if(S.phase==='lobby') btns = b('start','▶️ Start question 1');
+  else if(S.phase==='q') btns = b('reveal','👀 Reveal the answer');
+  else if(S.phase==='reveal') btns = (S.q<QUESTIONS.length-1 ? b('next','➡️ Next question') : b('next','🏁 Finish')) + b('back','↩️ Back to answering','btn-ghost');
+  else if(S.phase==='end') btns = '';
+  return `<div class="hostbar">${btns}${b('reset','🔄 Reset session','btn-ghost')}</div>`;
+}
+
+window.joinAs=joinAs; window.submitAnswer=submitAnswer; window.hostAction=hostAction;
+connect();
+</script>
+</body>
+</html>
