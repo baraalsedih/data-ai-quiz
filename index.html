@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AQU × DataCamp — Data &amp; AI Roles Quiz!</title>
+<title>DataCamp — Data &amp; AI Roles Quiz!</title>
 <script src="mqtt.min.js"></script>
 <script src="qrcode.min.js"></script>
 <style>
@@ -115,7 +115,7 @@
     <div class="logo">🤖</div>
     <div>
       <h1>Data &amp; AI Roles — Quiz!</h1>
-      <div class="sub">AQU × DataCamp Trainees</div>
+      <div class="sub">DataCamp Trainees</div>
     </div>
     <div class="pill" id="conn">connecting…</div>
   </header>
@@ -127,6 +127,10 @@
 const SESSION_ID = 'on1bslkh';
 const HOST_KEY   = '6q2haqrhfk';
 const QUESTIONS = [
+  {emoji:'🏫', text:'Which university are you from?', poll:true, correct:null,
+   options:['NNU','AQU','HU','BZU','PPU','AAUP Jenin','AAUP Ramallah'],
+   why:'No points here — just seeing who is in the room.'},
+
   {emoji:'🎓', text:'DataCamp is mainly a platform for learning what?',
    options:['Video editing','Data & AI skills','Graphic design','Game development'], correct:1,
    why:'DataCamp is built around data and AI skills — Python, R, SQL, statistics, machine learning.'},
@@ -169,7 +173,7 @@ const QUESTIONS = [
    options:['The model is too fast','The data may not represent everyone','The computer is slow','AI does not use data'], correct:1,
    why:'That is sampling bias — a model trained on one narrow group often fails on everyone outside it.'},
 ];
-const LETTERS = ['A','B','C','D','E','F'];
+const LETTERS = ['A','B','C','D','E','F','G'];
 
 const params  = new URLSearchParams(location.search);
 const IS_HOST = location.hash.includes(HOST_KEY);
@@ -262,7 +266,7 @@ function joinAs(){
 }
 function submitAnswer(pick){
   if(S.phase!=='q') return;
-  if(mySent[S.q]!==undefined) return;                  // locked in — one shot per question
+  if(mySent[S.q]!==undefined && !QUESTIONS[S.q].poll) return;   // scored questions lock on tap
   mySent[S.q]=pick;
   send({type:'answer', id:me.id, nick:me.nick, q:S.q, pick});
   render();
@@ -275,11 +279,14 @@ function myPick(qi){
   const a = (S.answers[qi]||{})[me.id];
   return a ? a.pick : undefined;
 }
+function isScored(q){ return q && q.correct!==null && q.correct!==undefined; }
+function scoredUpTo(qi){ return QUESTIONS.slice(0,qi+1).filter(isScored).length; }
+const SCORED_TOTAL = QUESTIONS.filter(isScored).length;
 function scores(){
   const out = {};
   Object.entries(S.roster).forEach(([id,r])=>{ out[id]={nick:r.nick, pts:0, answered:0}; });
   Object.entries(S.answers).forEach(([qi,byId])=>{
-    const q = QUESTIONS[qi]; if(!q) return;
+    const q = QUESTIONS[qi]; if(!isScored(q)) return;
     Object.entries(byId).forEach(([id,a])=>{
       if(!out[id]) out[id]={nick:a.nick, pts:0, answered:0};
       out[id].answered++;
@@ -300,7 +307,7 @@ function render(){
   if(!me.nick) return renderNick();
   if(S.phase==='lobby') return app().innerHTML =
     card(`<div class="qemoji">🎉</div><h2>You're in, ${esc(me.nick)}!</h2>
-      <p class="muted">${QUESTIONS.length} questions about data &amp; AI roles. One point per correct answer.</p>
+      <p class="muted">${SCORED_TOTAL} questions about data &amp; AI roles. One point per correct answer.</p>
       <div class="waiting dot3">Waiting for the host to start</div>`);
   if(S.phase==='end') return renderEnd();
   const q = QUESTIONS[S.q]; if(!q) return;
@@ -309,19 +316,23 @@ function render(){
   if(S.phase==='q'){
     let inner = qHead(q) + choicesHTML(q, pick, false);
     inner += pick!==undefined
-      ? `<p class="muted" style="color:var(--ok);font-weight:600">✓ Locked in: ${LETTERS[pick]}. Hang tight for the reveal.</p>`
-      : `<p class="muted">Pick one — you can't change it after you tap.</p>`;
+      ? `<p class="muted" style="color:var(--ok);font-weight:600">✓ ${q.poll?'Got it':'Locked in'}: ${LETTERS[pick]}.${q.poll?' You can still change it.':' Hang tight for the reveal.'}</p>`
+      : `<p class="muted">${q.poll?'Pick yours.':"Pick one — you can't change it after you tap."}</p>`;
     inner += `<p class="statline">${answersFor(S.q).length} of ${Object.keys(S.roster).length||'?'} answered…</p>`;
     return app().innerHTML = card(inner);
   }
   if(S.phase==='reveal'){
-    const right = pick===q.correct;
     let inner = qHead(q) + choicesHTML(q, pick, true);
-    inner += pick===undefined
-      ? `<div class="verdict bad">⏱️ No answer from you this round.<span class="why">${esc(q.why)}</span></div>`
-      : `<div class="verdict ${right?'ok':'bad'}">${right?'✅ Correct! +1 point':'❌ Not this time — the answer is '+LETTERS[q.correct]}
-          <span class="why">${esc(q.why)}</span></div>`;
-    inner += `<div class="center"><span class="score">Your score: ${myScore().pts} / ${S.q+1}</span></div>`;
+    if(!isScored(q)){
+      inner += barsHTML(S.q);
+    } else {
+      const right = pick===q.correct;
+      inner += pick===undefined
+        ? `<div class="verdict bad">⏱️ No answer from you this round.<span class="why">${esc(q.why)}</span></div>`
+        : `<div class="verdict ${right?'ok':'bad'}">${right?'✅ Correct! +1 point':'❌ Not this time — the answer is '+LETTERS[q.correct]}
+            <span class="why">${esc(q.why)}</span></div>`;
+      inner += `<div class="center"><span class="score">Your score: ${myScore().pts} / ${scoredUpTo(S.q)}</span></div>`;
+    }
     inner += `<div class="waiting dot3">Waiting for the next question</div>`;
     return app().innerHTML = card(inner);
   }
@@ -333,11 +344,11 @@ function qHead(q){ return `<div class="qcount">Question ${S.q+1} / ${QUESTIONS.l
 function choicesHTML(q, pick, revealed){
   return `<div class="choices">` + q.options.map((o,i)=>{
     let cls='choice';
-    if(revealed){
+    if(revealed && isScored(q)){
       if(i===q.correct) cls+=' right';
       else if(i===pick) cls+=' wrong';
     } else if(i===pick) cls+=' sel';
-    const lock = revealed || pick!==undefined;
+    const lock = revealed || (pick!==undefined && !q.poll);
     return `<button class="${cls}" ${lock?'disabled':''} onclick="submitAnswer(${i})">
       <span class="key">${LETTERS[i]}</span><span>${esc(o)}</span></button>`;
   }).join('') + `</div>`;
@@ -373,7 +384,7 @@ function renderEnd(){
   const s = myScore();
   app().innerHTML = card(`<div class="center"><div class="confetti">🎊</div>
     <h2>That's a wrap!</h2>
-    <div class="bignum">${s.pts} / ${QUESTIONS.length}</div>
+    <div class="bignum">${s.pts} / ${SCORED_TOTAL}</div>
     <p class="muted">Nice work, ${esc(me.nick)} — welcome to the world of Data &amp; AI roles! 💙</p></div>
     <h2 style="margin-top:18px">🏆 Leaderboard</h2>${leaderboardHTML(10)}`);
 }
@@ -395,7 +406,7 @@ function renderHost(){
     const q=QUESTIONS[S.q];
     main = card(qHead(q) +
       `<p class="statline"><b>${answersFor(S.q).length}</b> / ${roster.length} answered ${S.phase==='q'?'(results hidden from attendees until you reveal)':''}</p>` +
-      (S.phase==='reveal' ? `<p class="muted"><b>Correct answer: ${LETTERS[q.correct]}. ${esc(q.options[q.correct])}</b> — ${esc(q.why)}</p>` : '') +
+      (S.phase==='reveal' && isScored(q) ? `<p class="muted"><b>Correct answer: ${LETTERS[q.correct]}. ${esc(q.options[q.correct])}</b> — ${esc(q.why)}</p>` : '') +
       barsHTML(S.q)) +
       card(`<h2>🏆 Leaderboard</h2>${leaderboardHTML(10)}`);
   }
